@@ -1,25 +1,32 @@
-// MCP Bridge - Universal MCP client with API parity
-// Simple exports for programmatic use
+// MCP Bridge - Universal MCP client with API parity to mcplookup.org
+// Provides 8 MCP tools: 7 API tools + 1 invoke_tool for dynamic MCP server calls
 
-export { default as BridgeToolsWithAPIParity } from './bridge-tools';
-export { IntegratedBridge, setupIntegratedBridge } from './bridge-integration';
-export {
+import {
+  MCPLookupBridge,
   MCPHttpBridge,
   EnhancedMCPBridge,
   MCPDiscoveryBridge
-} from './bridge';
+} from './bridge.js';
+
+export {
+  MCPLookupBridge,
+  MCPHttpBridge,
+  EnhancedMCPBridge,
+  MCPDiscoveryBridge
+};
 
 // Simple utility functions
-export function createBridge(httpEndpoint = '', authHeaders = {}) {
-  return new MCPHttpBridge(httpEndpoint, authHeaders);
+export function createBridge(apiKey?: string, baseUrl?: string) {
+  return new MCPLookupBridge(apiKey, baseUrl);
 }
 
-export function createEnhancedBridge(httpEndpoint = '', authHeaders = {}) {
-  return new EnhancedMCPBridge(httpEndpoint, authHeaders);
+// Legacy compatibility
+export function createEnhancedBridge(apiKey?: string, baseUrl?: string) {
+  return new MCPLookupBridge(apiKey, baseUrl);
 }
 
-export function createDiscoveryBridge(discoveryEndpoint?: string) {
-  return new MCPDiscoveryBridge(discoveryEndpoint);
+export function createDiscoveryBridge(apiKey?: string, baseUrl?: string) {
+  return new MCPLookupBridge(apiKey, baseUrl);
 }
 
 // Version

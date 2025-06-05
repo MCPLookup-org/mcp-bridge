@@ -1,115 +1,155 @@
-# @mcplookup-org/mcp-bridge
+# MCP Bridge for mcplookup.org
 
-Universal MCP bridge with API parity to mcplookup.org discovery service.
+Universal MCP bridge that provides API parity with [mcplookup.org](https://mcplookup.org) discovery service. This bridge exposes 8 MCP tools that allow any MCP client to discover and interact with MCP servers through the mcplookup.org API.
 
-## 🚀 Dead Simple Installation
+## Features
+
+### 🔧 8 MCP Tools Available
+
+1. **`discover_mcp_servers`** - Search for MCP servers using natural language queries
+2. **`discover_smart`** - AI-powered discovery with intelligent recommendations  
+3. **`register_server`** - Register a new MCP server with the directory
+4. **`verify_domain`** - Start domain ownership verification
+5. **`check_domain_ownership`** - Check domain ownership status
+6. **`get_server_health`** - Get real-time server health metrics
+7. **`get_onboarding_state`** - Get user onboarding progress
+8. **`invoke_tool`** - Dynamically call any MCP server (SSE/HTTP streaming support)
+
+### 🌐 Universal Compatibility
+
+- **Generated API Client**: Uses OpenAPI-generated TypeScript client for type safety
+- **Multiple Transports**: Supports SSE, HTTP streaming, and stdio protocols
+- **Dynamic Server Calls**: Can connect to any MCP server on-demand
+- **Authentication**: Optional API key support for authenticated endpoints
+
+## Installation
 
 ```bash
 npm install @mcplookup-org/mcp-bridge
 ```
 
-## 🎯 Usage
+## Usage
 
-### Basic Bridge
-```typescript
-import { MCPHttpBridge } from '@mcplookup-org/mcp-bridge';
+### As a Standalone MCP Server
 
-const bridge = new MCPHttpBridge();
-await bridge.run(); // Starts MCP server on stdio
+```bash
+# Run the bridge as an MCP server on stdio
+npx @mcplookup-org/mcp-bridge
+
+# Or with API key for authenticated endpoints
+MCPLOOKUP_API_KEY=your_key_here npx @mcplookup-org/mcp-bridge
 ```
 
-### Enhanced Bridge
-```typescript
-import { EnhancedMCPBridge } from '@mcplookup-org/mcp-bridge';
+### Programmatic Usage
 
-const bridge = new EnhancedMCPBridge();
-await bridge.run(); // Starts with all 8 tools
+```typescript
+import { MCPLookupBridge } from '@mcplookup-org/mcp-bridge';
+
+// Create and start the bridge
+const bridge = new MCPLookupBridge('your_api_key_here');
+await bridge.run();
 ```
 
-### With API Key
-```typescript
-import { createBridge } from '@mcplookup-org/mcp-bridge';
+### MCP Client Configuration
 
-const bridge = createBridge('https://api.example.com/mcp', {
-  'Authorization': 'Bearer your-api-key'
+Add to your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "mcplookup-bridge": {
+      "command": "npx",
+      "args": ["@mcplookup-org/mcp-bridge"],
+      "env": {
+        "MCPLOOKUP_API_KEY": "your_key_here"
+      }
+    }
+  }
+}
+```
+
+## Tool Examples
+
+### Discover MCP Servers
+
+```typescript
+// Natural language search
+await callTool('discover_mcp_servers', {
+  query: "I need tools for managing customer emails and scheduling meetings",
+  limit: 5
 });
-await bridge.run();
+
+// Technical requirements
+await callTool('discover_mcp_servers', {
+  intent: "data_processing",
+  transport: "streamable_http",
+  limit: 10
+});
 ```
 
-### Discovery Bridge
-```typescript
-import { MCPDiscoveryBridge } from '@mcplookup-org/mcp-bridge';
+### Smart AI Discovery
 
-const discoveryBridge = new MCPDiscoveryBridge();
-const bridge = await discoveryBridge.createBridgeForDomain('gmail.com');
-await bridge.run();
+```typescript
+await callTool('discover_smart', {
+  query: "Find me the best tools for building a customer support system",
+  max_results: 5,
+  include_reasoning: true
+});
 ```
 
-## 🛠️ Available Tools
-
-The bridge provides 8 tools with API parity to the main mcplookup.org server:
-
-### Main Tools (7)
-1. **`discover_mcp_servers`** - Flexible MCP server discovery
-2. **`register_mcp_server`** - Register a new MCP server  
-3. **`verify_domain_ownership`** - Check DNS verification status
-4. **`get_server_health`** - Get server health metrics
-5. **`browse_capabilities`** - Browse MCP capabilities
-6. **`get_discovery_stats`** - Get discovery analytics
-7. **`list_mcp_tools`** - List available MCP tools
-
-### Bridge Tool (1)
-8. **`invoke_tool`** - Call tools on any streaming HTTP MCP server
-
-## 🔧 API Parity
-
-The bridge tools call the REST API instead of services directly:
-
-- **Main Server**: Direct service calls, database access
-- **Bridge**: REST API calls with authentication
-- **Same functionality**: Identical tool names, schemas, responses
-
-## 🌐 Universal MCP Client
-
-Use `invoke_tool` to call any tool on any streaming HTTP MCP server:
+### Dynamic Server Invocation
 
 ```typescript
-// Example: Call Gmail MCP server
+// Call any MCP server dynamically
 await callTool('invoke_tool', {
-  endpoint: 'https://api.gmail.com/mcp',
-  tool_name: 'send_email',
+  endpoint: "https://api.example.com/mcp",
+  tool_name: "search_files",
   arguments: {
-    to: 'user@example.com',
-    subject: 'Hello!',
-    body: 'Sent via MCP bridge'
-  },
-  auth_headers: {
-    'Authorization': 'Bearer gmail-token'
+    query: "*.pdf",
+    limit: 10
   }
 });
 ```
 
-## 📦 What's Included
+## Environment Variables
 
-- **MCPHttpBridge** - Basic bridge with 8 tools
-- **EnhancedMCPBridge** - Enhanced bridge with tool exploration
-- **MCPDiscoveryBridge** - Auto-discovery of MCP servers
-- **BridgeToolsWithAPIParity** - Core bridge tools class
-- **Utility functions** - Simple creation helpers
+- `MCPLOOKUP_API_KEY` - Optional API key for authenticated endpoints
+- `MCPLOOKUP_BASE_URL` - Override base URL (default: https://mcplookup.org/api/v1)
 
-## 🎯 Perfect For
+## Development
 
-- **MCP clients** that need discovery and registration tools
-- **Universal MCP connectivity** to any streaming HTTP server
-- **API-based access** to mcplookup.org functionality
-- **Bridge workflows** between different MCP servers
+```bash
+# Clone and install
+git clone https://github.com/MCPLookup-org/mcp-bridge.git
+cd mcp-bridge
+npm install
 
-## 📄 License
+# Build
+npm run build
 
-MIT
+# Run locally
+npm run bridge
 
-## 🔗 Links
+# Test
+npm test
+```
 
-- [GitHub](https://github.com/mcplookup-org/mcp-bridge)
-- [mcplookup.org](https://mcplookup.org)
-- [MCP Specification](https://modelcontextprotocol.io)
+## API Parity
+
+This bridge provides complete API parity with mcplookup.org:
+
+- ✅ Discovery endpoints (`/discover`, `/discover/smart`)
+- ✅ Registration endpoints (`/register`, `/verify`)
+- ✅ Health monitoring (`/health/{domain}`)
+- ✅ User management (`/onboarding`)
+- ✅ Dynamic MCP server invocation
+
+## License
+
+MIT - See [LICENSE](LICENSE) file for details.
+
+## Links
+
+- [mcplookup.org](https://mcplookup.org) - Main discovery service
+- [MCP Protocol](https://modelcontextprotocol.io) - Model Context Protocol specification
+- [GitHub Issues](https://github.com/MCPLookup-org/mcp-bridge/issues) - Bug reports and feature requests
