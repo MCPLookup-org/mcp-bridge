@@ -2,6 +2,7 @@
   "name": "@mcplookup-org/mcp-bridge",
   "version": "1.0.0",
   "description": "Universal MCP bridge with API parity to mcplookup.org discovery service",
+  "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {

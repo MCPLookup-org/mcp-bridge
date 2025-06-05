@@ -3,13 +3,13 @@
 // - 7 tools that use the generated OpenAPI client to call mcplookup.org API
 // - 1 invoke_tool that can dynamically call any MCP server via SSE/HTTP or HTTP streaming
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
-import { Client } from '@modelcontextprotocol/sdk/client/index';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { z } from 'zod';
-import { MCPLookupAPIClient } from './generated/api-client';
+import { MCPLookupAPIClient } from './generated/api-client.js';
 
 /**
  * MCP Bridge with API parity to mcplookup.org

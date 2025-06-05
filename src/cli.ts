@@ -3,7 +3,7 @@
 // CLI entry point for MCPLookup Bridge
 // Usage: npx @mcplookup-org/mcp-bridge
 
-import { MCPLookupBridge } from './bridge';
+import { MCPLookupBridge } from './bridge.js';
 
 async function main() {
   try {
@@ -37,6 +37,6 @@ async function main() {
 }
 
 // Only run if this file is executed directly
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }
