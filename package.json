@@ -4,6 +4,10 @@
   "description": "Universal MCP bridge with API parity to mcplookup.org discovery service",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": {
+    "mcp-bridge": "dist/cli.js",
+    "mcplookup-bridge": "dist/cli.js"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest",

@@ -6,7 +6,7 @@ import {
   MCPHttpBridge,
   EnhancedMCPBridge,
   MCPDiscoveryBridge
-} from './bridge.js';
+} from './bridge';
 
 export {
   MCPLookupBridge,

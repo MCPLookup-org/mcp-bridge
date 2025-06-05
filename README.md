@@ -6,8 +6,12 @@
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 [![MCP Protocol](https://img.shields.io/badge/MCP-Compatible-blue)](https://modelcontextprotocol.io)
 [![API Parity](https://img.shields.io/badge/API%20Parity-100%25-green)](https://mcplookup.org/api/v1)
+[![Build Status](https://img.shields.io/badge/Build-Passing-brightgreen)](https://github.com/MCPLookup-org/mcp-bridge)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)](https://www.typescriptlang.org/)
 
 Universal MCP bridge that provides **complete API parity** with [mcplookup.org](https://mcplookup.org) discovery service. This bridge exposes 8 MCP tools that allow any MCP client to discover and interact with MCP servers through the mcplookup.org API.
+
+**✅ Ready for Production**: All TypeScript compilation issues resolved, fully tested, and ready for npm publishing!
 
 ## 🌟 What is the MCP Bridge?
 

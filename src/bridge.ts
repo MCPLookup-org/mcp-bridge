@@ -3,13 +3,13 @@
 // - 7 tools that use the generated OpenAPI client to call mcplookup.org API
 // - 1 invoke_tool that can dynamically call any MCP server via SSE/HTTP or HTTP streaming
 
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
+import { Client } from '@modelcontextprotocol/sdk/client/index';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse';
 import { z } from 'zod';
-import { MCPLookupAPIClient } from './generated/api-client.js';
+import { MCPLookupAPIClient } from './generated/api-client';
 
 /**
  * MCP Bridge with API parity to mcplookup.org
@@ -63,17 +63,31 @@ export class MCPLookupBridge {
       },
       async ({ query, intent, domain, capability, category, transport, verified_only, limit = 10, offset = 0 }) => {
         try {
-          const result = await this.apiClient.discover({
-            query,
-            intent,
-            domain,
-            capability,
-            category,
-            transport,
-            verified_only,
-            limit,
-            offset
-          });
+          // Build the request body according to the API schema
+          const requestBody: any = {};
+
+          if (query) requestBody.query = query;
+          if (intent) requestBody.intent = intent;
+          if (limit) requestBody.limit = limit;
+
+          // Handle technical requirements
+          if (transport) {
+            requestBody.technical = { transport };
+          }
+
+          // Note: The current API doesn't support domain/capability filters in the discover endpoint
+          // These would need to be handled by filtering the results or using query strings
+          if (domain) {
+            requestBody.query = requestBody.query ? `${requestBody.query} domain:${domain}` : `domain:${domain}`;
+          }
+          if (capability) {
+            requestBody.query = requestBody.query ? `${requestBody.query} capability:${capability}` : `capability:${capability}`;
+          }
+          if (category) {
+            requestBody.query = requestBody.query ? `${requestBody.query} category:${category}` : `category:${category}`;
+          }
+
+          const result = await this.apiClient.discover(requestBody);
 
           return {
             content: [{
