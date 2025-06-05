@@ -1,0 +1,56 @@
+{
+  "name": "@mcplookup-org/mcp-bridge",
+  "version": "1.0.0",
+  "description": "Universal MCP bridge with API parity to mcplookup.org discovery service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "bridge",
+    "client",
+    "discovery",
+    "mcplookup"
+  ],
+  "author": "MCPLookup.org",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mcplookup-org/mcp-bridge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mcplookup-org/mcp-bridge/issues"
+  },
+  "homepage": "https://github.com/mcplookup-org/mcp-bridge#readme",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "tsx": "^4.0.0",
+    "vitest": "^1.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
