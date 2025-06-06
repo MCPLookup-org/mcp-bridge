@@ -295,7 +295,7 @@ export class MCPLookupBridge {
         endpoint: z.string().describe('MCP server endpoint URL'),
         tool_name: z.string().describe('Name of the tool to call'),
         arguments: z.record(z.any()).optional().describe('Arguments to pass to the tool'),
-        auth_headers: z.record(z.string()).optional().describe('Optional authentication headers')
+        auth_headers: z.record(z.string()).optional().describe('Optional authentication headers (e.g., {"Authorization": "Bearer token", "X-API-Key": "key"})')
       },
       async ({ endpoint, tool_name, arguments: args = {}, auth_headers = {} }) => {
         try {
@@ -308,11 +308,21 @@ export class MCPLookupBridge {
           let transport;
           try {
             // Try Streamable HTTP first (modern)
-            transport = new StreamableHTTPClientTransport(new URL(endpoint));
+            transport = new StreamableHTTPClientTransport(new URL(endpoint), {
+              requestInit: {
+                headers: auth_headers
+              }
+            });
             await client.connect(transport);
           } catch (error) {
             // Fallback to SSE (legacy)
-            transport = new SSEClientTransport(new URL(endpoint));
+            transport = new SSEClientTransport(new URL(endpoint), {
+              requestInit: {
+                headers: auth_headers
+              }
+              // Note: EventSource doesn't support custom headers in all environments
+              // Headers are passed via requestInit for POST requests
+            });
             await client.connect(transport);
           }
 
