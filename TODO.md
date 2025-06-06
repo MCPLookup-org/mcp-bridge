@@ -31,14 +31,22 @@
 - Updated parameter mapping to match OpenAPI schema
 - Added proper error handling for all endpoints
 
+### ES Module Compatibility
+- Converted to ES modules (`"type": "module"`)
+- Updated tsconfig.json to use ESNext modules
+- Fixed all imports to use .js extensions
+- Full compatibility with @modelcontextprotocol/sdk v1.12.1
+
 ### CLI Entry Point
-- Added `src/cli.ts` with proper CommonJS syntax
+- Added `src/cli.ts` with proper ES module syntax
 - Updated package.json with bin entries
 - Supports environment variable configuration
+- Uses import.meta.url for ES module detection
 
 ### Build System
 - All TypeScript compilation errors resolved
 - Successful build with `npm run build`
+- ES module loading tested and working
 - Ready for npm publishing
 
 ## Next Steps
