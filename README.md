@@ -91,7 +91,7 @@ const servers = await callTool('discover_mcp_servers', {
 
 ## 🚀 Quick Start
 
-### Installation
+### Option 1: NPM (Node.js)
 
 ```bash
 # Install globally for CLI usage
@@ -99,16 +99,49 @@ npm install -g @mcplookup-org/mcp-bridge
 
 # Or install locally for programmatic usage
 npm install @mcplookup-org/mcp-bridge
-```
 
-### Instant Usage
-
-```bash
 # Run immediately with public discovery
 npx @mcplookup-org/mcp-bridge
 
 # Or with API key for full functionality
 MCPLOOKUP_API_KEY=your_key_here npx @mcplookup-org/mcp-bridge
+```
+
+### Option 2: Docker 🐳 (Recommended)
+
+```bash
+# Run with public API access
+docker run -d \
+  --name mcp-bridge \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  mcplookup/mcp-bridge:latest
+
+# Run with API key for full functionality
+docker run -d \
+  --name mcp-bridge \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e MCPLOOKUP_API_KEY=mcp_your_api_key_here \
+  mcplookup/mcp-bridge:latest
+```
+
+### Option 3: Docker Compose (Production)
+
+```bash
+# Clone and setup
+git clone https://github.com/MCPLookup-org/mcp-bridge.git
+cd mcp-bridge
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your API key
+
+# Start the bridge
+docker-compose up -d
+
+# View logs
+docker-compose logs -f mcp-bridge
 ```
 
 ## 📖 Usage Examples
@@ -418,12 +451,47 @@ const bridge = new MCPLookupBridge(
 );
 ```
 
+## 🐳 Docker Deployment
+
+The bridge is fully containerized for easy deployment:
+
+### Features
+- ✅ **Multi-stage build** for optimal image size
+- ✅ **Non-root user** for security
+- ✅ **Health checks** built-in
+- ✅ **Resource limits** configured
+- ✅ **Production ready** with proper logging
+
+### Quick Docker Commands
+
+```bash
+# Build from source
+docker build -t mcplookup/mcp-bridge .
+
+# Run with environment file
+docker run --env-file .env mcplookup/mcp-bridge
+
+# Production deployment
+docker-compose up -d
+
+# View logs
+docker logs -f mcp-bridge
+
+# Health check
+docker exec mcp-bridge node -e "console.log('Bridge is healthy')"
+```
+
+📖 **See [DOCKER.md](./DOCKER.md) for complete Docker deployment guide**
+
 ## 🌍 Environment Variables
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
 | `MCPLOOKUP_API_KEY` | API key for authentication | None | No* |
 | `MCPLOOKUP_BASE_URL` | Override base URL | `https://mcplookup.org/api/v1` | No |
+| `NODE_ENV` | Node environment | `production` | No |
+| `PORT` | HTTP port (Docker mode) | `3000` | No |
+| `LOG_LEVEL` | Logging level | `info` | No |
 
 **\* Required for management tools (register, verify, onboarding)**
 
