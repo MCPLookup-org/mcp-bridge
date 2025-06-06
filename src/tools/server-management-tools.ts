@@ -50,6 +50,7 @@ export class ServerManagementTools {
         command: z.string().describe('Docker command or npm package name'),
         mode: z.enum(['bridge', 'direct']).default('bridge').describe('Installation mode: bridge (dynamic) or direct (Claude config)'),
         auto_start: z.boolean().default(true).describe('Start server immediately after install (bridge mode only)'),
+        global_install: z.boolean().default(false).describe('Install npm package globally (direct mode only, like Smithery)'),
         env: z.record(z.string()).optional().describe('Environment variables for the server')
       },
       async (options: ServerInstallOptions) => this.installServer(options)
@@ -183,13 +184,25 @@ export class ServerManagementTools {
         options.env || {}
       );
     } else {
-      // npm package
-      await this.claudeConfigManager.addServer(
-        options.name,
-        'npx',
-        [options.command],
-        options.env || {}
-      );
+      // npm package - use direct command if globally installed, npx otherwise
+      if (options.global_install) {
+        // Smithery-style: use the package name directly (assumes global install)
+        const packageName = options.command.split('/').pop() || options.command; // Get package name without scope
+        await this.claudeConfigManager.addServer(
+          options.name,
+          packageName,
+          [],
+          options.env || {}
+        );
+      } else {
+        // Default: use npx (no global install required)
+        await this.claudeConfigManager.addServer(
+          options.name,
+          'npx',
+          [options.command],
+          options.env || {}
+        );
+      }
     }
 
     const configPath = await this.claudeConfigManager.getConfigPath();

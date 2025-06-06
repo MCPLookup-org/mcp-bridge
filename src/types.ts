@@ -25,6 +25,7 @@ export interface ServerInstallOptions {
   command: string;
   mode?: 'bridge' | 'direct';
   auto_start?: boolean;
+  global_install?: boolean;
   env?: Record<string, string>;
 }
 

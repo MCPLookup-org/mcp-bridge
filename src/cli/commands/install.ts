@@ -10,6 +10,7 @@ export interface InstallOptions {
   autoStart: boolean;
   force: boolean;
   dryRun: boolean;
+  globalInstall?: boolean;
   verbose?: boolean;
 }
 
@@ -199,6 +200,7 @@ export class InstallCommand extends BaseCommand {
 📋 Type: ${resolvedPackage.type}
 🔍 Source: ${resolvedPackage.source}
 ${resolvedPackage.verified ? '✅ Verified' : '⚠️  Unverified'}
+${options.globalInstall && resolvedPackage.type === 'npm' ? '🌐 Global Install: Yes (Smithery-style)' : '📦 Global Install: No (uses npx)'}
 ⚙️ Config: ${Object.keys(config).length} keys
 🌍 Environment: ${Object.keys(env).length} variables
 🚀 Auto-start: ${options.autoStart}
@@ -273,12 +275,18 @@ ${resolvedPackage.verified ? '✅ Verified' : '⚠️  Unverified'}
       }
     }
 
+    // For npm packages, offer global installation like Smithery
+    if (resolvedPackage.type === 'npm' && options.globalInstall) {
+      await this.performGlobalNpmInstall(resolvedPackage.packageName);
+    }
+
     await this.withSpinner('Adding to Claude Desktop configuration...', async () => {
       const result = await this.bridge.components.serverManagementTools['installServer']({
         name: this.generateServerName(resolvedPackage.packageName),
         type: resolvedPackage.type,
         command: resolvedPackage.packageName,
         mode: 'direct',
+        global_install: options.globalInstall,
         env: { ...env, ...config }
       });
 
@@ -288,6 +296,36 @@ ${resolvedPackage.verified ? '✅ Verified' : '⚠️  Unverified'}
     });
 
     this.success('Server added to Claude Desktop configuration');
+
+    if (options.globalInstall && resolvedPackage.type === 'npm') {
+      this.info('📦 Package installed globally and added to Claude config');
+    } else {
+      this.info('📦 Package added to Claude config (will use npx)');
+    }
+  }
+
+  private async performGlobalNpmInstall(packageName: string): Promise<void> {
+    const { spawn } = await import('child_process');
+
+    await this.withSpinner(`Installing ${packageName} globally...`, async () => {
+      return new Promise<void>((resolve, reject) => {
+        const npmProcess = spawn('npm', ['install', '-g', packageName], {
+          stdio: this.verbose ? 'inherit' : 'pipe'
+        });
+
+        npmProcess.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`npm install failed with code ${code}`));
+          }
+        });
+
+        npmProcess.on('error', (error) => {
+          reject(new Error(`Failed to run npm install: ${error.message}`));
+        });
+      });
+    });
   }
 
   private generateServerName(packageName: string): string {
