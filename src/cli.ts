@@ -35,7 +35,7 @@ async function main() {
 
     // Start the bridge in appropriate mode
     if (httpMode) {
-      await bridge.runHttp(port);
+      await bridge.runHTTP(port);
     } else {
       await bridge.run();
     }

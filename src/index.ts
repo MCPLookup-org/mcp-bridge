@@ -6,7 +6,7 @@ import {
   MCPHttpBridge,
   EnhancedMCPBridge,
   MCPDiscoveryBridge
-} from './bridge-refactored.js';
+} from './bridge.js';
 
 // Export types
 export * from './types.js';
