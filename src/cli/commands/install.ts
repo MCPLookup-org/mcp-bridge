@@ -107,7 +107,7 @@ export class InstallCommand extends BaseCommand {
   private async searchForPackage(query: string): Promise<ResolvedPackage> {
     try {
       // First try smart discovery for better matching
-      const smartResult = await this.bridge.components.coreTools['smartDiscovery']({
+      const smartResult = await this.bridge.api.smartDiscovery({
         query,
         limit: 5
       });
@@ -143,7 +143,7 @@ export class InstallCommand extends BaseCommand {
       }
 
       // Fall back to regular discovery
-      const regularResult = await this.bridge.components.coreTools['discoverServers']({
+      const regularResult = await this.bridge.api.discoverServers({
         query,
         limit: 5
       });
@@ -237,7 +237,7 @@ ${resolvedPackage.verified ? '✅ Verified' : '⚠️  Unverified'}
     }
 
     await this.withSpinner('Installing server...', async () => {
-      const result = await this.bridge.components.serverManagementTools['installServer']({
+      const result = await this.bridge.api.installServer({
         name: this.generateServerName(resolvedPackage.packageName),
         type: resolvedPackage.type,
         command: resolvedPackage.packageName,
@@ -287,7 +287,7 @@ ${resolvedPackage.verified ? '✅ Verified' : '⚠️  Unverified'}
     }
 
     await this.withSpinner('Adding to Claude Desktop configuration...', async () => {
-      const result = await this.bridge.components.serverManagementTools['installServer']({
+      const result = await this.bridge.api.installServer({
         name: this.generateServerName(resolvedPackage.packageName),
         type: resolvedPackage.type,
         command: resolvedPackage.packageName,

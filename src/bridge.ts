@@ -318,6 +318,58 @@ export class MCPLookupBridge {
       serverManagementTools: this.serverManagementTools
     };
   }
+
+  // Expose API client for CLI usage
+  get client() {
+    return this.apiClient;
+  }
+
+  // High-level API methods for CLI (combines API client + local operations)
+  get api() {
+    const coreTools = this.coreTools as any;
+    const serverManagementTools = this.serverManagementTools;
+    const serverRegistry = this.serverRegistry;
+
+    return {
+      // Remote API operations (delegate to core tools for consistency)
+      async discoverServers(params: any) {
+        return await coreTools['discoverServers'](params);
+      },
+
+      async smartDiscovery(params: any) {
+        return await coreTools['smartDiscovery'](params);
+      },
+
+      async registerServer(params: any) {
+        return await coreTools['registerServer'](params);
+      },
+
+      async getOnboardingState() {
+        return await coreTools['getOnboardingState']();
+      },
+
+      // Local bridge operations (delegate to components)
+      async installServer(params: any) {
+        return await serverManagementTools.installServer(params);
+      },
+
+      async listManagedServers() {
+        return await serverManagementTools.listManagedServers();
+      },
+
+      async controlServer(params: any) {
+        return await serverManagementTools.controlServer(params);
+      },
+
+      async listClaudeServers() {
+        return await serverManagementTools.listClaudeServers();
+      },
+
+      async getServerHealth(serverName: string) {
+        return await serverRegistry.getServerHealth(serverName);
+      }
+    };
+  }
 }
 
 // Legacy exports for backwards compatibility

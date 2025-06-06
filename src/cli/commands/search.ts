@@ -42,7 +42,7 @@ export class SearchCommand extends BaseCommand {
     this.info(`🧠 Smart search for: "${query}"`);
     
     await this.withSpinner('Searching with AI...', async () => {
-      const result = await this.bridge.components.coreTools['smartDiscovery']({
+      const result = await this.bridge.api.smartDiscovery({
         query,
         limit
       });
@@ -65,7 +65,7 @@ export class SearchCommand extends BaseCommand {
       if (options.transport) searchParams.transport = options.transport;
       if (options.verified) searchParams.verified_only = true;
 
-      const result = await this.bridge.components.coreTools['discoverServers'](searchParams);
+      const result = await this.bridge.api.discoverServers(searchParams);
       const response = JSON.parse(result.content[0].text);
       this.displayRegularResults(response);
     });

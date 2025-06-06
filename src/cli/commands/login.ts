@@ -54,7 +54,7 @@ export class LoginCommand extends BaseCommand {
     try {
       // Test the API key by making a simple request
       const testBridge = new (await import('../../bridge.js')).MCPLookupBridge(apiKey);
-      await testBridge.components.coreTools['getOnboardingState']();
+      await testBridge.api.getOnboardingState();
       
     } catch (error) {
       throw new Error('Invalid API key or network error');

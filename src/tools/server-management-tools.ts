@@ -95,7 +95,7 @@ export class ServerManagementTools {
   }
 
   // Implementation methods
-  private async installServer(options: ServerInstallOptions): Promise<ToolCallResult> {
+  async installServer(options: ServerInstallOptions): Promise<ToolCallResult> {
     try {
       if (options.mode === 'direct') {
         return await this.installDirectMode(options);
@@ -225,7 +225,7 @@ export class ServerManagementTools {
 
 
 
-  private async listManagedServers(): Promise<ToolCallResult> {
+  async listManagedServers(): Promise<ToolCallResult> {
     const servers = this.serverRegistry.listServers().map(server => ({
       name: server.name,
       type: server.type,
@@ -242,7 +242,7 @@ export class ServerManagementTools {
     };
   }
 
-  private async controlServer(options: ServerControlOptions): Promise<ToolCallResult> {
+  async controlServer(options: ServerControlOptions): Promise<ToolCallResult> {
     try {
       if (!this.serverRegistry.hasServer(options.name)) {
         return {
@@ -293,7 +293,7 @@ export class ServerManagementTools {
     }
   }
 
-  private async listClaudeServers(): Promise<ToolCallResult> {
+  async listClaudeServers(): Promise<ToolCallResult> {
     try {
       const servers = await this.claudeConfigManager.listServers();
       

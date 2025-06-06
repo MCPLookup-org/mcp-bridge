@@ -44,9 +44,9 @@ export class ListCommand extends BaseCommand {
     // Get bridge mode servers
     if (options.mode === 'bridge' || options.mode === 'all') {
       try {
-        const bridgeResult = await this.bridge.components.serverManagementTools['listManagedServers']();
+        const bridgeResult = await this.bridge.api.listManagedServers();
         const bridgeServers = JSON.parse(bridgeResult.content[0].text);
-        
+
         bridgeServers.forEach((server: any) => {
           servers.push({
             ...server,
@@ -62,9 +62,9 @@ export class ListCommand extends BaseCommand {
     // Get direct mode servers
     if (options.mode === 'direct' || options.mode === 'all') {
       try {
-        const directResult = await this.bridge.components.serverManagementTools['listClaudeServers']();
+        const directResult = await this.bridge.api.listClaudeServers();
         const directServers = JSON.parse(directResult.content[0].text);
-        
+
         directServers.forEach((server: any) => {
           servers.push({
             name: server.name,
@@ -215,7 +215,7 @@ export class ListCommand extends BaseCommand {
     this.info('🌐 Searching available servers...');
 
     try {
-      const result = await this.bridge.components.coreTools['discoverServers']({
+      const result = await this.bridge.api.discoverServers({
         limit: 20
       });
 
