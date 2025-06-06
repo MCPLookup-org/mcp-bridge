@@ -61,8 +61,8 @@ function getBridge(): MCPLookupBridge {
 program
   .command('install')
   .alias('i')
-  .description('🚀 Install MCP server (supports NPM packages, Docker images, and more)')
-  .argument('<package>', 'Package name, Docker image, or server identifier')
+  .description('🚀 Install MCP server (supports NPM packages, Docker images, and natural language)')
+  .argument('<package>', 'Package name (@org/pkg), Docker image (org/img:tag), or description ("gmail server")')
   .option('-c, --client <client>', 'Target client (claude, cursor, etc.)', 'claude')
   .option('-m, --mode <mode>', 'Installation mode: direct (permanent) or bridge (dynamic)', 'direct')
   .option('--config <json>', 'Configuration as JSON string')
@@ -70,6 +70,12 @@ program
   .option('--auto-start', 'Auto-start server after installation (bridge mode)', true)
   .option('--force', 'Force installation even if server exists')
   .option('--dry-run', 'Show what would be installed without actually installing')
+  .addHelpText('after', `
+Examples:
+  mcpl install @modelcontextprotocol/server-filesystem
+  mcpl install company/server:latest
+  mcpl install "The official Gmail server"
+  mcpl install filesystem --mode bridge --auto-start`)
   .action(async (packageName, options) => {
     const installCmd = new InstallCommand(getBridge());
     await installCmd.execute(packageName, options);
@@ -117,6 +123,12 @@ program
   .option('--verified', 'Only show verified servers')
   .option('--limit <n>', 'Maximum results to show', '10')
   .option('--smart', 'Use AI-powered smart search')
+  .addHelpText('after', `
+Examples:
+  mcpl search "email automation tools"
+  mcpl search filesystem --verified
+  mcpl search --category productivity
+  mcpl search "I need to manage files" --smart`)
   .action(async (query, options) => {
     const searchCmd = new SearchCommand(getBridge());
     await searchCmd.execute(query, options);
@@ -263,10 +275,11 @@ program.on('--help', () => {
   console.log('');
   console.log(chalk.yellow('📚 Examples:'));
   console.log('  mcpl search "email automation tools"');
-  console.log('  mcpl install @company/server --mode bridge --auto-start');
+  console.log('  mcpl install @modelcontextprotocol/server-filesystem');
+  console.log('  mcpl install "The official Gmail server"');
+  console.log('  mcpl install company/server:latest --mode bridge');
   console.log('  mcpl status --watch');
   console.log('  mcpl health --fix');
-  console.log('  mcpl backup create my-config.json');
   console.log('');
   console.log(chalk.green('🚀 Get started: mcpl search filesystem'));
 });

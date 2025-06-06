@@ -13,10 +13,19 @@ export interface InstallOptions {
   verbose?: boolean;
 }
 
+export interface ResolvedPackage {
+  packageName: string;
+  displayName: string;
+  description?: string;
+  type: 'npm' | 'docker';
+  source: 'direct' | 'smart_search' | 'registry_search';
+  verified?: boolean;
+}
+
 export class InstallCommand extends BaseCommand {
   async execute(packageName: string, options: InstallOptions): Promise<void> {
     this.setVerbose(options.verbose || false);
-    
+
     try {
       this.info(`Installing MCP server: ${packageName}`);
       this.debug(`Options: ${JSON.stringify(options, null, 2)}`);
@@ -25,30 +34,25 @@ export class InstallCommand extends BaseCommand {
       const config = options.config ? this.parseJSON(options.config) : {};
       const env = options.env ? this.parseJSON(options.env) : {};
 
+      // Resolve the actual package to install
+      const resolvedPackage = await this.resolvePackage(packageName);
+      this.debug(`Resolved package: ${JSON.stringify(resolvedPackage, null, 2)}`);
+
       // Dry run mode
       if (options.dryRun) {
-        await this.performDryRun(packageName, options, config, env);
+        await this.performDryRun(resolvedPackage, options, config, env);
         return;
       }
 
-      // Check if package exists (if not a direct package name)
-      if (!this.isDirectPackage(packageName)) {
-        await this.searchAndSelectPackage(packageName);
-      }
-
-      // Determine installation type
-      const installType = this.determineInstallType(packageName);
-      this.debug(`Detected installation type: ${installType}`);
-
       // Install based on mode
       if (options.mode === 'bridge') {
-        await this.installBridgeMode(packageName, installType, config, env, options);
+        await this.installBridgeMode(resolvedPackage, config, env, options);
       } else {
-        await this.installDirectMode(packageName, installType, config, env, options);
+        await this.installDirectMode(resolvedPackage, config, env, options);
       }
 
-      this.success(`Successfully installed ${packageName}`);
-      
+      this.success(`Successfully installed ${resolvedPackage.displayName || resolvedPackage.packageName}`);
+
       // Post-installation instructions
       this.showPostInstallInstructions(options.mode, options.client);
 
@@ -57,21 +61,144 @@ export class InstallCommand extends BaseCommand {
     }
   }
 
+  /**
+   * Resolve package name to actual installable package
+   * Handles: NPM packages, Docker images, natural language queries
+   */
+  private async resolvePackage(input: string): Promise<ResolvedPackage> {
+    // 1. Direct NPM package (e.g., @npmorg/package, package-name)
+    if (this.isNpmPackage(input)) {
+      return {
+        packageName: input,
+        displayName: input,
+        type: 'npm',
+        source: 'direct'
+      };
+    }
+
+    // 2. Docker image (e.g., company/server:latest)
+    if (this.isDockerImage(input)) {
+      return {
+        packageName: input,
+        displayName: input,
+        type: 'docker',
+        source: 'direct'
+      };
+    }
+
+    // 3. Natural language or server name - search mcplookup.org
+    this.info(`🔍 Searching for: "${input}"`);
+    return await this.searchForPackage(input);
+  }
+
+  private isNpmPackage(input: string): boolean {
+    // NPM package patterns: @scope/name, package-name, etc.
+    return /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(input) &&
+           !input.includes(':') &&
+           !input.includes(' ');
+  }
+
+  private isDockerImage(input: string): boolean {
+    // Docker image patterns: name:tag, registry/name:tag, etc.
+    return input.includes(':') && !input.includes(' ') && !input.startsWith('@');
+  }
+
+  private async searchForPackage(query: string): Promise<ResolvedPackage> {
+    try {
+      // First try smart discovery for better matching
+      const smartResult = await this.bridge.components.coreTools['smartDiscovery']({
+        query,
+        limit: 5
+      });
+
+      const smartResponse = JSON.parse(smartResult.content[0].text);
+
+      if (smartResponse.servers && smartResponse.servers.length > 0) {
+        const server = smartResponse.servers[0]; // Take the best match
+
+        // Prefer NPM package if available
+        if (server.npm_package) {
+          return {
+            packageName: server.npm_package,
+            displayName: server.name,
+            description: server.description,
+            type: 'npm',
+            source: 'smart_search',
+            verified: server.verified
+          };
+        }
+
+        // Fall back to Docker if available
+        if (server.docker_image) {
+          return {
+            packageName: server.docker_image,
+            displayName: server.name,
+            description: server.description,
+            type: 'docker',
+            source: 'smart_search',
+            verified: server.verified
+          };
+        }
+      }
+
+      // Fall back to regular discovery
+      const regularResult = await this.bridge.components.coreTools['discoverServers']({
+        query,
+        limit: 5
+      });
+
+      const regularResponse = JSON.parse(regularResult.content[0].text);
+
+      if (regularResponse.servers && regularResponse.servers.length > 0) {
+        const server = regularResponse.servers[0];
+
+        if (server.npm_package) {
+          return {
+            packageName: server.npm_package,
+            displayName: server.name,
+            description: server.description,
+            type: 'npm',
+            source: 'registry_search',
+            verified: server.verified
+          };
+        }
+
+        if (server.docker_image) {
+          return {
+            packageName: server.docker_image,
+            displayName: server.name,
+            description: server.description,
+            type: 'docker',
+            source: 'registry_search',
+            verified: server.verified
+          };
+        }
+      }
+
+      throw new Error(`No installable package found for: "${query}"`);
+
+    } catch (error) {
+      throw new Error(`Search failed for "${query}": ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   private async performDryRun(
-    packageName: string, 
-    options: InstallOptions, 
-    config: any, 
+    resolvedPackage: ResolvedPackage,
+    options: InstallOptions,
+    config: any,
     env: any
   ): Promise<void> {
     this.info('🔍 Dry run mode - showing what would be installed:');
-    
-    const installType = this.determineInstallType(packageName);
-    
+
     console.log(`
-📦 Package: ${packageName}
+📦 Package: ${resolvedPackage.packageName}
+🏷️  Display Name: ${resolvedPackage.displayName}
+📝 Description: ${resolvedPackage.description || 'N/A'}
 🎯 Client: ${options.client}
 🔧 Mode: ${options.mode}
-📋 Type: ${installType}
+📋 Type: ${resolvedPackage.type}
+🔍 Source: ${resolvedPackage.source}
+${resolvedPackage.verified ? '✅ Verified' : '⚠️  Unverified'}
 ⚙️ Config: ${Object.keys(config).length} keys
 🌍 Environment: ${Object.keys(env).length} variables
 🚀 Auto-start: ${options.autoStart}
@@ -84,69 +211,32 @@ export class InstallCommand extends BaseCommand {
     this.info('Use --force to proceed with actual installation');
   }
 
-  private isDirectPackage(packageName: string): boolean {
-    // Check if it's a direct NPM package or Docker image
-    return packageName.includes('/') || packageName.startsWith('@') || packageName.includes(':');
-  }
 
-  private async searchAndSelectPackage(query: string): Promise<string> {
-    this.info(`Searching for servers matching: ${query}`);
-    
-    try {
-      // Use smart discovery to find matching servers
-      const searchResult = await this.bridge.components.coreTools['smartDiscovery']({
-        query,
-        limit: 5
-      });
-
-      const servers = JSON.parse(searchResult.content[0].text);
-      
-      if (!servers.servers || servers.servers.length === 0) {
-        throw new Error(`No servers found matching: ${query}`);
-      }
-
-      if (servers.servers.length === 1) {
-        const server = servers.servers[0];
-        this.info(`Found server: ${server.name}`);
-        return server.npm_package || server.docker_image || query;
-      }
-
-      // Multiple results - let user choose
-      const choices = servers.servers.map((server: any) => ({
-        name: `${server.name} - ${server.description}`,
-        value: server.npm_package || server.docker_image || server.name
-      }));
-
-      const selected = await this.select('Select a server to install:', choices);
-      return selected;
-
-    } catch (error) {
-      this.warn(`Search failed, proceeding with original package name: ${error instanceof Error ? error.message : String(error)}`);
-      return query;
-    }
-  }
-
-  private determineInstallType(packageName: string): 'npm' | 'docker' {
-    if (packageName.includes(':') && !packageName.startsWith('@')) {
-      return 'docker';
-    }
-    return 'npm';
-  }
 
   private async installBridgeMode(
-    packageName: string,
-    type: 'npm' | 'docker',
+    resolvedPackage: ResolvedPackage,
     config: any,
     env: any,
     options: InstallOptions
   ): Promise<void> {
     this.info('Installing in bridge mode (dynamic, no restart required)');
 
+    // Show what we're installing
+    if (resolvedPackage.source !== 'direct') {
+      this.info(`📦 Installing: ${resolvedPackage.displayName}`);
+      if (resolvedPackage.description) {
+        this.info(`📝 ${resolvedPackage.description}`);
+      }
+      if (resolvedPackage.verified) {
+        this.info('✅ This is a verified server');
+      }
+    }
+
     await this.withSpinner('Installing server...', async () => {
       const result = await this.bridge.components.serverManagementTools['installServer']({
-        name: this.generateServerName(packageName),
-        type,
-        command: packageName,
+        name: this.generateServerName(resolvedPackage.packageName),
+        type: resolvedPackage.type,
+        command: resolvedPackage.packageName,
         mode: 'bridge',
         auto_start: options.autoStart,
         env: { ...env, ...config }
@@ -158,26 +248,36 @@ export class InstallCommand extends BaseCommand {
     });
 
     this.success('Server installed and ready to use immediately!');
-    
+
     if (options.autoStart) {
       this.info('Server is running and tools are available with prefix');
     }
   }
 
   private async installDirectMode(
-    packageName: string,
-    type: 'npm' | 'docker',
+    resolvedPackage: ResolvedPackage,
     config: any,
     env: any,
     options: InstallOptions
   ): Promise<void> {
     this.info('Installing in direct mode (permanent, requires restart)');
 
+    // Show what we're installing
+    if (resolvedPackage.source !== 'direct') {
+      this.info(`📦 Installing: ${resolvedPackage.displayName}`);
+      if (resolvedPackage.description) {
+        this.info(`📝 ${resolvedPackage.description}`);
+      }
+      if (resolvedPackage.verified) {
+        this.info('✅ This is a verified server');
+      }
+    }
+
     await this.withSpinner('Adding to Claude Desktop configuration...', async () => {
       const result = await this.bridge.components.serverManagementTools['installServer']({
-        name: this.generateServerName(packageName),
-        type,
-        command: packageName,
+        name: this.generateServerName(resolvedPackage.packageName),
+        type: resolvedPackage.type,
+        command: resolvedPackage.packageName,
         mode: 'direct',
         env: { ...env, ...config }
       });
