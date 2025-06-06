@@ -133,18 +133,17 @@ export class ServerManagementTools {
       status: 'installing'
     };
 
-    // Add environment variables to Docker command if provided
-    if (options.env && Object.keys(options.env).length > 0) {
-      if (options.type === 'docker') {
-        server.command = this.dockerManager.addEnvironmentVariables(server.command, options.env);
-      }
-    }
-
     this.serverRegistry.addServer(server);
 
     if (options.type === 'npm') {
-      // For npm packages, dockerize them
-      await this.dockerManager.dockerizeNpmServer(server);
+      // For npm packages, dockerize them using centralized method
+      // Environment variables are handled inside dockerizeNpmServer
+      await this.dockerManager.dockerizeNpmServer(server, options.env || {});
+    } else if (options.type === 'docker') {
+      // Add environment variables to existing Docker command if provided
+      if (options.env && Object.keys(options.env).length > 0) {
+        server.command = this.dockerManager.addEnvironmentVariables(server.command, options.env);
+      }
     }
 
     if (options.auto_start) {
@@ -199,12 +198,15 @@ export class ServerManagementTools {
           options.env || {}
         );
       } else {
-        // Default: Dockerize the npx command (like bridge mode)
-        const dockerCommand = this.createDockerizedNpxCommand(options.command, options.env || {});
+        // Default: Dockerize the npx command using centralized Docker manager
+        const dockerArgs = this.dockerManager.createDirectModeDockerArgs(
+          options.command,
+          options.env || {}
+        );
         await this.claudeConfigManager.addServer(
           options.name,
           'docker',
-          dockerCommand,
+          dockerArgs,
           {} // env already included in docker command
         );
       }
@@ -221,35 +223,7 @@ export class ServerManagementTools {
     };
   }
 
-  /**
-   * Create a dockerized npx command for direct mode
-   */
-  private createDockerizedNpxCommand(packageName: string, env: Record<string, string>): string[] {
-    const baseCommand = [
-      'run', '--rm', '-i',
-      '--name', `mcp-direct-${packageName.replace(/[@\/]/g, '-')}`,
-      'node:18-alpine',
-      'sh', '-c',
-      `npm install -g ${packageName} && npx ${packageName}`
-    ];
 
-    // Add environment variables if provided
-    const envArgs: string[] = [];
-    for (const [key, value] of Object.entries(env)) {
-      envArgs.push('-e', `${key}=${value}`);
-    }
-
-    if (envArgs.length > 0) {
-      // Insert env args after 'run'
-      return [
-        baseCommand[0], // 'run'
-        ...envArgs,
-        ...baseCommand.slice(1)
-      ];
-    }
-
-    return baseCommand;
-  }
 
   private async listManagedServers(): Promise<ToolCallResult> {
     const servers = this.serverRegistry.listServers().map(server => ({

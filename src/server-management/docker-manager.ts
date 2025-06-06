@@ -6,18 +6,85 @@ export class DockerManager {
   /**
    * Dockerize an npm package into a runnable container command
    */
-  async dockerizeNpmServer(server: ManagedServer): Promise<void> {
+  async dockerizeNpmServer(server: ManagedServer, env: Record<string, string> = {}): Promise<void> {
     const packageName = server.command[1]; // npx <package-name>
-    
-    // Create Docker command for npm package
-    server.command = [
+
+    // Use the centralized Docker command creation
+    server.command = this.createNpmDockerCommand(packageName, {
+      containerName: `mcp-${server.name}`,
+      mode: 'bridge',
+      env,
+      includePortMapping: false // Bridge mode doesn't need port mapping for stdio
+    });
+  }
+
+  /**
+   * Create a Docker command for running npm packages
+   * Centralized method to avoid duplication between bridge and direct modes
+   */
+  createNpmDockerCommand(
+    packageName: string,
+    options: {
+      containerName?: string;
+      mode?: 'bridge' | 'direct';
+      env?: Record<string, string>;
+      includePortMapping?: boolean;
+    } = {}
+  ): string[] {
+    const {
+      containerName = `mcp-${packageName.replace(/[@\/]/g, '-')}`,
+      mode = 'bridge',
+      env = {},
+      includePortMapping = false
+    } = options;
+
+    // Base Docker command
+    const baseCommand = [
       'docker', 'run', '--rm', '-i',
-      '--name', `mcp-${server.name}`,
-      '-p', '0:3000', // Random port mapping
+      '--name', containerName,
+      ...(includePortMapping ? ['-p', '0:3000'] : []), // Only add port mapping if needed
       'node:18-alpine',
       'sh', '-c',
       `npm install -g ${packageName} && npx ${packageName}`
     ];
+
+    // Add environment variables if provided
+    let command = baseCommand;
+    if (Object.keys(env).length > 0) {
+      command = this.addEnvironmentVariables(command, env);
+    }
+
+    // Add security and resource limits for production use
+    if (mode === 'direct') {
+      // Direct mode gets full security hardening
+      command = this.addResourceLimits(command, {
+        memory: '512m',
+        cpus: '0.5',
+        pidsLimit: 100
+      });
+      command = this.addSecurityOptions(command);
+    }
+
+    return command;
+  }
+
+  /**
+   * Create Docker command args for direct mode (without 'docker' prefix)
+   * Used by Claude Desktop config
+   */
+  createDirectModeDockerArgs(
+    packageName: string,
+    env: Record<string, string> = {}
+  ): string[] {
+    const fullCommand = this.createNpmDockerCommand(packageName, {
+      containerName: `mcp-direct-${packageName.replace(/[@\/]/g, '-')}`,
+      mode: 'direct',
+      env,
+      includePortMapping: false
+    });
+
+    // Remove 'docker' prefix for Claude Desktop config
+    return fullCommand.slice(1);
   }
 
   /**
