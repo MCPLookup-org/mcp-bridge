@@ -3,17 +3,22 @@
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { MCPLookupAPIClient } from '../generated/api-client.js';
-import { 
-  DiscoveryOptions, 
-  RegistrationOptions, 
+import {
+  DiscoveryOptions,
+  RegistrationOptions,
   InvokeToolOptions,
   HealthCheckOptions,
   SmartDiscoveryOptions,
   DomainVerificationOptions,
   DomainOwnershipOptions,
-  ToolCallResult 
+  ToolCallResult
 } from '../types.js';
 import { ToolInvoker } from './tool-invoker.js';
+import {
+  createSuccessResult,
+  createErrorResult,
+  executeWithErrorHandling
+} from '../shared/response-utils.js';
 
 export class CoreTools {
   private apiClient: MCPLookupAPIClient;
@@ -131,9 +136,9 @@ export class CoreTools {
 
   // Implementation methods
   private async discoverServers(options: DiscoveryOptions): Promise<ToolCallResult> {
-    try {
+    return executeWithErrorHandling(async () => {
       const requestBody: any = {};
-      
+
       if (options.query) requestBody.query = options.query;
       if (options.intent) requestBody.intent = options.intent;
       if (options.limit) requestBody.limit = options.limit;
@@ -150,69 +155,24 @@ export class CoreTools {
         requestBody.query = requestBody.query ? `${requestBody.query} capability:${options.capability}` : `capability:${options.capability}`;
       }
 
-      const result = await this.apiClient.discover(requestBody);
-
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify(result, null, 2)
-        }]
-      };
-    } catch (error) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: `Error discovering servers: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }],
-        isError: true
-      };
-    }
+      return await this.apiClient.discover(requestBody);
+    }, 'Error discovering servers');
   }
 
   private async smartDiscovery(options: SmartDiscoveryOptions): Promise<ToolCallResult> {
-    try {
-      const result = await this.apiClient.discoverSmart({
+    return executeWithErrorHandling(async () => {
+      return await this.apiClient.discoverSmart({
         query: options.query,
         max_results: options.limit || 5,
         include_reasoning: true
       });
-
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify(result, null, 2)
-        }]
-      };
-    } catch (error) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: `Error in smart discovery: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }],
-        isError: true
-      };
-    }
+    }, 'Error in smart discovery');
   }
 
   private async registerServer(options: RegistrationOptions): Promise<ToolCallResult> {
-    try {
-      const result = await this.apiClient.register(options);
-
-      return {
-        content: [{
-          type: 'text' as const,
-          text: JSON.stringify(result, null, 2)
-        }]
-      };
-    } catch (error) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: `Error registering server: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }],
-        isError: true
-      };
-    }
+    return executeWithErrorHandling(async () => {
+      return await this.apiClient.register(options);
+    }, 'Error registering server');
   }
 
   private async verifyDomain(options: DomainVerificationOptions): Promise<ToolCallResult> {

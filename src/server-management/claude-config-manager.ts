@@ -4,6 +4,12 @@ import { readFile, writeFile, access } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { ClaudeConfig } from '../types.js';
+import {
+  readJsonFile,
+  writeJsonFile,
+  updateJsonFile,
+  fileExists
+} from '../shared/config-utils.js';
 
 export class ClaudeConfigManager {
   private configPath?: string;
@@ -50,14 +56,8 @@ export class ClaudeConfigManager {
    * Read Claude Desktop configuration
    */
   async readConfig(): Promise<ClaudeConfig> {
-    try {
-      const configPath = await this.getConfigPath();
-      const configContent = await readFile(configPath, 'utf-8');
-      return JSON.parse(configContent);
-    } catch (error) {
-      // Return empty config if file doesn't exist or is invalid
-      return { mcpServers: {} };
-    }
+    const configPath = await this.getConfigPath();
+    return await readJsonFile(configPath, { mcpServers: {} });
   }
 
   /**
@@ -65,31 +65,37 @@ export class ClaudeConfigManager {
    */
   async writeConfig(config: ClaudeConfig): Promise<void> {
     const configPath = await this.getConfigPath();
-    await writeFile(configPath, JSON.stringify(config, null, 2));
+    await writeJsonFile(configPath, config);
   }
 
   /**
    * Add server to Claude Desktop configuration
    */
   async addServer(
-    name: string, 
-    command: string, 
-    args: string[], 
+    name: string,
+    command: string,
+    args: string[],
     env: Record<string, string> = {}
   ): Promise<void> {
-    const config = await this.readConfig();
-    
-    if (!config.mcpServers) {
-      config.mcpServers = {};
-    }
+    const configPath = await this.getConfigPath();
 
-    config.mcpServers[name] = {
-      command,
-      args,
-      ...(Object.keys(env).length > 0 && { env })
-    };
+    await updateJsonFile<ClaudeConfig>(
+      configPath,
+      (config: ClaudeConfig) => {
+        if (!config.mcpServers) {
+          config.mcpServers = {};
+        }
 
-    await this.writeConfig(config);
+        config.mcpServers[name] = {
+          command,
+          args,
+          ...(Object.keys(env).length > 0 && { env })
+        };
+
+        return config;
+      },
+      { mcpServers: {} }
+    );
   }
 
   /**

@@ -2,16 +2,23 @@
 
 import { z } from 'zod';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { 
-  ServerInstallOptions, 
-  ServerControlOptions, 
+import {
+  ServerInstallOptions,
+  ServerControlOptions,
   ToolCallResult,
-  ManagedServer 
+  ManagedServer
 } from '../types.js';
 import { ServerRegistry } from '../server-management/server-registry.js';
 import { ClaudeConfigManager } from '../server-management/claude-config-manager.js';
 import { DockerManager } from '../server-management/docker-manager.js';
 import { DynamicToolRegistry } from './dynamic-tool-registry.js';
+import {
+  createSuccessResult,
+  createErrorResult,
+  executeWithErrorHandling,
+  sanitizeIdentifier
+} from '../shared/response-utils.js';
+import { validateInstallOptions } from '../shared/validation-utils.js';
 
 export class ServerManagementTools {
   private serverRegistry: ServerRegistry;
@@ -96,21 +103,19 @@ export class ServerManagementTools {
 
   // Implementation methods
   async installServer(options: ServerInstallOptions): Promise<ToolCallResult> {
-    try {
+    // Validate installation options
+    const validation = validateInstallOptions(options);
+    if (!validation.isValid) {
+      return createErrorResult(new Error(validation.errors.join('; ')), 'Invalid installation options');
+    }
+
+    return executeWithErrorHandling(async () => {
       if (options.mode === 'direct') {
         return await this.installDirectMode(options);
       } else {
         return await this.installBridgeMode(options);
       }
-    } catch (error) {
-      return {
-        content: [{
-          type: 'text' as const,
-          text: `❌ Failed to install ${options.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
-        }],
-        isError: true
-      };
-    }
+    }, `Failed to install ${options.name}`);
   }
 
   private async installBridgeMode(options: ServerInstallOptions): Promise<ToolCallResult> {
