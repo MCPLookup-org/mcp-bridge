@@ -184,10 +184,14 @@ export class ServerManagementTools {
         options.env || {}
       );
     } else {
-      // npm package - use direct command if globally installed, npx otherwise
+      // npm package handling
       if (options.global_install) {
         // Smithery-style: use the package name directly (assumes global install)
-        const packageName = options.command.split('/').pop() || options.command; // Get package name without scope
+        // Extract package name from scoped packages (@org/pkg -> pkg)
+        const packageName = options.command.includes('/')
+          ? options.command.split('/').pop() || options.command
+          : options.command;
+
         await this.claudeConfigManager.addServer(
           options.name,
           packageName,
@@ -195,24 +199,56 @@ export class ServerManagementTools {
           options.env || {}
         );
       } else {
-        // Default: use npx (no global install required)
+        // Default: Dockerize the npx command (like bridge mode)
+        const dockerCommand = this.createDockerizedNpxCommand(options.command, options.env || {});
         await this.claudeConfigManager.addServer(
           options.name,
-          'npx',
-          [options.command],
-          options.env || {}
+          'docker',
+          dockerCommand,
+          {} // env already included in docker command
         );
       }
     }
 
     const configPath = await this.claudeConfigManager.getConfigPath();
+    const installMethod = options.global_install ? 'host (Smithery-style)' : 'Docker container';
 
     return {
       content: [{
         type: 'text' as const,
-        text: `✅ Installed ${options.name} in Claude Desktop config (direct mode)\n📋 Config updated at: ${configPath}\n🔄 Please restart Claude Desktop to use the server.\n\nServer will be available as: ${options.name}`
+        text: `✅ Installed ${options.name} in Claude Desktop config (direct mode)\n📋 Config updated at: ${configPath}\n🔄 Please restart Claude Desktop to use the server.\n\n🏃 Runtime: ${installMethod}\nServer will be available as: ${options.name}`
       }]
     };
+  }
+
+  /**
+   * Create a dockerized npx command for direct mode
+   */
+  private createDockerizedNpxCommand(packageName: string, env: Record<string, string>): string[] {
+    const baseCommand = [
+      'run', '--rm', '-i',
+      '--name', `mcp-direct-${packageName.replace(/[@\/]/g, '-')}`,
+      'node:18-alpine',
+      'sh', '-c',
+      `npm install -g ${packageName} && npx ${packageName}`
+    ];
+
+    // Add environment variables if provided
+    const envArgs: string[] = [];
+    for (const [key, value] of Object.entries(env)) {
+      envArgs.push('-e', `${key}=${value}`);
+    }
+
+    if (envArgs.length > 0) {
+      // Insert env args after 'run'
+      return [
+        baseCommand[0], // 'run'
+        ...envArgs,
+        ...baseCommand.slice(1)
+      ];
+    }
+
+    return baseCommand;
   }
 
   private async listManagedServers(): Promise<ToolCallResult> {

@@ -191,6 +191,8 @@ export class InstallCommand extends BaseCommand {
   ): Promise<void> {
     this.info('🔍 Dry run mode - showing what would be installed:');
 
+    const runtimeInfo = this.getRuntimeInfo(resolvedPackage.type, options.mode, options.globalInstall);
+
     console.log(`
 📦 Package: ${resolvedPackage.packageName}
 🏷️  Display Name: ${resolvedPackage.displayName}
@@ -200,7 +202,7 @@ export class InstallCommand extends BaseCommand {
 📋 Type: ${resolvedPackage.type}
 🔍 Source: ${resolvedPackage.source}
 ${resolvedPackage.verified ? '✅ Verified' : '⚠️  Unverified'}
-${options.globalInstall && resolvedPackage.type === 'npm' ? '🌐 Global Install: Yes (Smithery-style)' : '📦 Global Install: No (uses npx)'}
+🏃 Runtime: ${runtimeInfo}
 ⚙️ Config: ${Object.keys(config).length} keys
 🌍 Environment: ${Object.keys(env).length} variables
 🚀 Auto-start: ${options.autoStart}
@@ -275,7 +277,11 @@ ${options.globalInstall && resolvedPackage.type === 'npm' ? '🌐 Global Install
       }
     }
 
-    // For npm packages, offer global installation like Smithery
+    // Show runtime information
+    const runtimeInfo = this.getRuntimeInfo(resolvedPackage.type, 'direct', options.globalInstall);
+    this.info(`🏃 Runtime: ${runtimeInfo}`);
+
+    // For npm packages with global install, perform npm install -g
     if (resolvedPackage.type === 'npm' && options.globalInstall) {
       await this.performGlobalNpmInstall(resolvedPackage.packageName);
     }
@@ -298,9 +304,11 @@ ${options.globalInstall && resolvedPackage.type === 'npm' ? '🌐 Global Install
     this.success('Server added to Claude Desktop configuration');
 
     if (options.globalInstall && resolvedPackage.type === 'npm') {
-      this.info('📦 Package installed globally and added to Claude config');
+      this.info('🏠 Package runs directly on host (Smithery-style)');
+    } else if (resolvedPackage.type === 'npm') {
+      this.info('🐳 Package runs in Docker container (secure isolation)');
     } else {
-      this.info('📦 Package added to Claude config (will use npx)');
+      this.info('🐳 Docker image runs in container');
     }
   }
 
@@ -334,6 +342,24 @@ ${options.globalInstall && resolvedPackage.type === 'npm' ? '🌐 Global Install
       .replace(/[@\/]/g, '-')
       .replace(/[^a-zA-Z0-9-]/g, '')
       .toLowerCase();
+  }
+
+  private getRuntimeInfo(type: string, mode: string, globalInstall?: boolean): string {
+    if (mode === 'bridge') {
+      return type === 'docker' ? 'Docker container (bridge)' : 'Docker container (npm via npx)';
+    }
+
+    // Direct mode
+    if (type === 'docker') {
+      return 'Docker container (direct)';
+    }
+
+    // NPM package in direct mode
+    if (globalInstall) {
+      return 'Host system (Smithery-style)';
+    } else {
+      return 'Docker container (npm via npx)';
+    }
   }
 
   private showPostInstallInstructions(mode: string, client: string): void {

@@ -70,11 +70,11 @@ program
   .option('--auto-start', 'Auto-start server after installation (bridge mode)', true)
   .option('--force', 'Force installation even if server exists')
   .option('--dry-run', 'Show what would be installed without actually installing')
-  .option('--global', 'Install npm package globally like Smithery (direct mode only)')
+  .option('--global', 'Run on host system like Smithery (bypasses Docker isolation)')
   .addHelpText('after', `
 Examples:
   mcpl install @modelcontextprotocol/server-filesystem
-  mcpl install @company/server --global  # Smithery-style global install
+  mcpl install @company/server --global  # Run on host like Smithery
   mcpl install company/server:latest
   mcpl install "The official Gmail server"
   mcpl install filesystem --mode bridge --auto-start`)

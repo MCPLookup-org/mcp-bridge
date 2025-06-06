@@ -1,21 +1,21 @@
 # 🎯 Direct Mode Installation Guide
 
-MCPL now supports **two types of direct mode installation** to give you maximum flexibility:
+MCPL supports **two types of direct mode installation** to give you maximum flexibility:
 
 ## 🔄 **Installation Methods**
 
-### **1. Default Method (Recommended)**
+### **1. Default Method (Recommended) - Docker Isolation**
 ```bash
-# Uses npx - no global install required
+# Runs in Docker container for security
 mcpl install @modelcontextprotocol/server-filesystem
 mcpl install @company/email-server
 ```
 
 **How it works:**
-- ✅ **No global install**: Package doesn't need to be installed globally
-- ✅ **Uses npx**: Claude Desktop runs `npx package-name`
+- 🐳 **Docker isolation**: Package runs in secure container
+- ✅ **No global install**: Package doesn't clutter your system
+- 🔒 **Security**: Isolated from host system
 - ✅ **Always up-to-date**: Uses latest version automatically
-- ✅ **Clean system**: No global packages cluttering your system
 - ✅ **Fast**: No npm install step required
 
 **Claude Desktop Config:**
@@ -23,25 +23,28 @@ mcpl install @company/email-server
 {
   "mcpServers": {
     "filesystem": {
-      "command": "npx",
-      "args": ["@modelcontextprotocol/server-filesystem"]
+      "command": "docker",
+      "args": ["run", "--rm", "-i", "--name", "mcp-direct-filesystem",
+               "node:18-alpine", "sh", "-c",
+               "npm install -g @modelcontextprotocol/server-filesystem && npx @modelcontextprotocol/server-filesystem"]
     }
   }
 }
 ```
 
-### **2. Smithery-Style Method**
+### **2. Smithery-Style Method - Host System**
 ```bash
-# Global install like Smithery
+# Run directly on host like Smithery
 mcpl install @modelcontextprotocol/server-filesystem --global
 mcpl install @company/email-server --global
 ```
 
 **How it works:**
 - 📦 **Global install**: Runs `npm install -g package-name` first
-- 🎯 **Direct command**: Claude Desktop runs the package directly
+- 🏠 **Host execution**: Claude Desktop runs the package directly on host
 - 🔒 **Version locked**: Uses the globally installed version
-- 🏠 **Smithery compatible**: Exact same behavior as Smithery
+- 🎯 **Smithery compatible**: Exact same behavior as Smithery
+- ⚠️ **No isolation**: Package has full access to host system
 
 **Claude Desktop Config:**
 ```json
@@ -57,18 +60,20 @@ mcpl install @company/email-server --global
 
 ## 🆚 **Comparison**
 
-| Feature | Default (npx) | Global (--global) | Smithery |
-|---------|---------------|-------------------|----------|
+| Feature | Default (Docker) | Global (--global) | Smithery |
+|---------|------------------|-------------------|----------|
+| **Runtime** | 🐳 Docker container | 🏠 Host system | 🏠 Host system |
+| **Security** | 🔒 Isolated | ⚠️ Full host access | ⚠️ Full host access |
 | **Global Install** | ❌ Not required | ✅ Required | ✅ Required |
 | **System Clean** | ✅ Clean | ❌ Global packages | ❌ Global packages |
 | **Auto-updates** | ✅ Latest version | ❌ Manual updates | ❌ Manual updates |
 | **Speed** | ⚡ Instant | 🐌 npm install time | 🐌 npm install time |
 | **Compatibility** | ✅ Modern | ✅ Legacy | ✅ Legacy |
-| **Disk Usage** | 💾 Minimal | 💾 More storage | 💾 More storage |
 
 ## 🎯 **When to Use Each Method**
 
-### **Use Default (npx) When:**
+### **Use Default (Docker) When:**
+- 🔒 You want security and isolation
 - ✅ You want the latest version automatically
 - ✅ You prefer a clean system without global packages
 - ✅ You're installing multiple servers
@@ -81,6 +86,7 @@ mcpl install @company/email-server --global
 - 🏢 Corporate environment requires global installs
 - 📊 You want exact Smithery compatibility
 - 🎯 You prefer traditional npm workflow
+- ⚠️ You trust the package completely (no isolation needed)
 
 ## 📚 **Examples**
 
