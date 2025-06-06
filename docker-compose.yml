@@ -16,6 +16,9 @@ services:
       - MCPLOOKUP_BASE_URL=https://mcplookup.org/api/v1
       # Set your API key here or use .env file
       - MCPLOOKUP_API_KEY=${MCPLOOKUP_API_KEY:-}
+      # Enable HTTP mode for remote access
+      - MCP_HTTP_MODE=${MCP_HTTP_MODE:-false}
+      - PORT=3000
     
     # Port mapping (if running in HTTP mode)
     ports:

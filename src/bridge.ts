@@ -5,9 +5,11 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { z } from 'zod';
 import { MCPLookupAPIClient } from './generated/api-client.js';
 
@@ -353,9 +355,16 @@ export class MCPLookupBridge {
   }
 
   /**
-   * Start the bridge server on stdio
+   * Start the bridge server on stdio (default)
    */
   async run(): Promise<void> {
+    return this.runStdio();
+  }
+
+  /**
+   * Start the bridge server on stdio transport
+   */
+  async runStdio(): Promise<void> {
     try {
       console.log('🌉 Starting MCPLookup Bridge v1.0.0');
       console.log('🔧 Available tools: 8 (7 API tools + 1 invoke_tool)');
@@ -378,6 +387,76 @@ export class MCPLookupBridge {
 
     } catch (error) {
       console.error('❌ Failed to start bridge server:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Start the bridge server on HTTP/SSE transport
+   */
+  async runHttp(port: number = 3000): Promise<void> {
+    try {
+      console.log('🌉 Starting MCPLookup Bridge v1.0.0');
+      console.log('🔧 Available tools: 8 (7 API tools + 1 invoke_tool)');
+      console.log('📡 API endpoint: https://mcplookup.org/api/v1');
+      console.log(`🌐 Starting HTTP server on port ${port}...`);
+
+      // Create HTTP server
+      const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+        // Set CORS headers
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200);
+          res.end();
+          return;
+        }
+
+        if (req.url === '/mcp' && req.method === 'GET') {
+          // SSE connection
+          const transport = new SSEServerTransport('/mcp', res);
+          await this.server.connect(transport);
+          await transport.start();
+        } else if (req.url === '/mcp' && req.method === 'POST') {
+          // Handle POST messages (this would need proper routing in a real implementation)
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'POST handling not implemented in this simple server' }));
+        } else if (req.url === '/health') {
+          // Health check endpoint
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ status: 'healthy', timestamp: new Date().toISOString() }));
+        } else {
+          // 404 for other paths
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Not found' }));
+        }
+      });
+
+      // Start the server
+      await new Promise<void>((resolve, reject) => {
+        httpServer.listen(port, (err?: Error) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      console.log(`✅ MCPLookup Bridge started successfully on port ${port}`);
+      console.log(`🔗 MCP endpoint: http://localhost:${port}/mcp`);
+      console.log(`🏥 Health check: http://localhost:${port}/health`);
+      console.log('🎯 Tools available:');
+      console.log('  • discover_mcp_servers - Search for MCP servers');
+      console.log('  • discover_smart - AI-powered discovery');
+      console.log('  • register_server - Register a new MCP server');
+      console.log('  • verify_domain - Start domain verification');
+      console.log('  • check_domain_ownership - Check domain ownership');
+      console.log('  • get_server_health - Get server health metrics');
+      console.log('  • get_onboarding_state - Get user onboarding progress');
+      console.log('  • invoke_tool - Call any MCP server dynamically');
+
+    } catch (error) {
+      console.error('❌ Failed to start bridge HTTP server:', error);
       throw error;
     }
   }

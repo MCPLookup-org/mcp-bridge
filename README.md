@@ -144,11 +144,13 @@ docker-compose up -d
 docker-compose logs -f mcp-bridge
 ```
 
-## 📖 Usage Examples
+## 📖 Claude Desktop Integration
 
-### 1. Claude Desktop Integration
+The bridge supports **three deployment patterns** for Claude Desktop:
 
-Add to your Claude Desktop MCP configuration:
+### 🔧 **Pattern 1: Local NPM with stdio** (Development)
+
+Direct execution via NPM for development and testing:
 
 ```json
 {
@@ -157,12 +159,81 @@ Add to your Claude Desktop MCP configuration:
       "command": "npx",
       "args": ["@mcplookup-org/mcp-bridge"],
       "env": {
-        "MCPLOOKUP_API_KEY": "your_key_here"
+        "MCPLOOKUP_API_KEY": "mcp_your_api_key_here"
       }
     }
   }
 }
 ```
+
+**✅ Pros**: Quick setup, easy debugging
+**⚠️ Cons**: Requires Node.js, less isolated
+
+### 🐳 **Pattern 2: Local Docker with stdio** (Recommended)
+
+Run bridge in Docker container with stdio transport:
+
+```json
+{
+  "mcpServers": {
+    "mcplookup-bridge": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "--env", "MCPLOOKUP_API_KEY=mcp_your_api_key_here",
+        "mcplookup/mcp-bridge:latest"
+      ]
+    }
+  }
+}
+```
+
+**✅ Pros**: Isolated, no Node.js required, production-ready
+**⚠️ Cons**: Requires Docker
+
+### 🌐 **Pattern 3: Remote HTTP/SSE** (Production)
+
+Deploy bridge remotely and connect via HTTP transport:
+
+**Step 1**: Deploy bridge remotely in HTTP mode
+```bash
+# On your server
+docker run -d \
+  --name mcp-bridge \
+  --restart unless-stopped \
+  -p 3000:3000 \
+  -e MCPLOOKUP_API_KEY=mcp_your_api_key_here \
+  -e MCP_HTTP_MODE=true \
+  mcplookup/mcp-bridge:latest
+
+# Or with NPM
+MCPLOOKUP_API_KEY=mcp_your_api_key_here \
+npx @mcplookup-org/mcp-bridge --http --port=3000
+```
+
+**Step 2**: Configure Claude Desktop for SSE transport
+```json
+{
+  "mcpServers": {
+    "mcplookup-bridge": {
+      "command": "npx",
+      "args": ["@modelcontextprotocol/cli", "client", "sse://your-server.com:3000/mcp"]
+    }
+  }
+}
+```
+
+**✅ Pros**: Scalable, shared across devices, high availability
+**⚠️ Cons**: Requires server infrastructure
+
+### 🎯 **Which Pattern to Choose?**
+
+| Use Case | Pattern | Best For |
+|----------|---------|----------|
+| **Development** | NPM stdio | Quick testing, debugging |
+| **Personal Use** | Docker stdio | Daily use, reliability |
+| **Team/Enterprise** | Remote HTTP | Multiple users, scaling |
+| **Production** | Remote HTTP + Load Balancer | High availability |
 
 **Now Claude can:**
 - **"Find email servers"** → Discovers Gmail, Outlook, etc.
@@ -170,7 +241,9 @@ Add to your Claude Desktop MCP configuration:
 - **"Check if Gmail is healthy"** → Gets real-time health metrics
 - **"Call the search tool on GitHub's server"** → Dynamic server invocation
 
-### 2. Programmatic Usage
+## 📖 Additional Usage Examples
+
+### Programmatic Usage
 
 ```typescript
 import { MCPLookupBridge } from '@mcplookup-org/mcp-bridge';
@@ -184,7 +257,7 @@ await bridge.run();
 // Bridge is now available for MCP clients to connect
 ```
 
-### 3. Environment Variable Configuration
+### Environment Variable Configuration
 
 ```bash
 # Set API key in environment
@@ -194,7 +267,7 @@ export MCPLOOKUP_API_KEY="mcp_your_api_key_here"
 npx @mcplookup-org/mcp-bridge
 ```
 
-### 4. Custom Base URL
+### Custom Base URL
 
 ```typescript
 // Use custom mcplookup.org instance

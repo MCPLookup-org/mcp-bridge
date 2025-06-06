@@ -12,12 +12,20 @@ docker run -d \
   -p 3000:3000 \
   mcplookup/mcp-bridge:latest
 
-# Run with API key for full functionality
+# Run with API key for full functionality (stdio mode)
+docker run -d \
+  --name mcp-bridge \
+  --restart unless-stopped \
+  -e MCPLOOKUP_API_KEY=mcp_your_api_key_here \
+  mcplookup/mcp-bridge:latest
+
+# Run in HTTP mode for remote access
 docker run -d \
   --name mcp-bridge \
   --restart unless-stopped \
   -p 3000:3000 \
   -e MCPLOOKUP_API_KEY=mcp_your_api_key_here \
+  -e MCP_HTTP_MODE=true \
   mcplookup/mcp-bridge:latest
 ```
 
